@@ -1,0 +1,52 @@
+version: '2.1'
+services:
+  traefik:
+    image: traefik          #The official Traefik docker image
+    command: --api --docker #Enables the web UI and tells Træfik to listen to docker
+    restart: always
+    ports:
+      - "80:80"             #The HTTP port
+      - "443:443"           # 
+      - "8080:8080"         #The Web UI (enabled by --api)
+#    networks:
+#      - default
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock #So that Traefik can listen to the Docker events
+#      - ./traefik.toml:/traefik.toml
+#      - ./acme.json:/acme.json
+    container_name: traefik
+
+  web:
+    build: .
+    command: npm start
+    restart: always
+#    networks:
+#      - default
+    volumes:
+      - .:/usr/app/:Z
+      - /usr/app/node_modules
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URL_ATLAS2: "mongodb://mongo:27017/atlas2"
+      MONGO_URL_TEST_DUPLICATION: "mongodb://mongo:27017/test-duplication"
+      MONGO_URL_TEST_USAGE: "mongodb://mongo:27017/test-usage"
+    labels:
+      - "traefik.backend=atlas2"
+#      - "traefik.docker.network=web"
+      - "traefik.frontend.rule=Host:wardleymaps.officialstatistics.org"
+      - "traefik.enable=true"
+      - "traefik.port=6001"
+      - "traefik.default.protocol=http"
+
+  mongo:
+    image: mongo:3.0
+#    restart: always
+#    networks:
+#      - default
+    volumes:
+      - ./data:/data/db:Z
+
+#networks:
+#  web:
+#    external: true
